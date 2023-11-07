@@ -37,12 +37,12 @@
 
 
 // 0 here means leave it alone for default
-static int target_frequencies_k[] = { 0, 
-                               25'000,
-                               125'000, // Pi Pico default
-                               133'000, // RP2040 maximum
-                               200'000  // typical over-clocking
-                             };
+static int target_frequencies_k[] = { 0,
+                                      25'000,
+                                      125'000,  // Pi Pico default
+                                      133'000,  // RP2040 maximum
+                                      200'000   // typical over-clocking
+                                    };
 
 
 // Relevant / interesting links (perhaps)
@@ -60,7 +60,7 @@ int64_t bm_classic_array(void) {
     absolute_time_t t1, t2, t3;
     t1 = get_absolute_time();
     int32_t classic_array[ARRAY_LEN];
- 
+
     t2 = get_absolute_time();
     for (int32_t i=0; i < ARRAY_LEN; i++) {
         classic_array[i] = THE_NUMBER;
@@ -70,7 +70,7 @@ int64_t bm_classic_array(void) {
         total += classic_array[i];
     }
     t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3); 
+    int64_t duration_us = absolute_time_diff_us(t2, t3);
 
     printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(classic_array), duration_us);
     return duration_us;
@@ -90,7 +90,7 @@ int64_t bm_cpp_array(void) {
         total += cpp_array[i];
     }
     t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3); 
+    int64_t duration_us = absolute_time_diff_us(t2, t3);
 
     printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
     return duration_us;
@@ -170,7 +170,7 @@ int64_t bm_cpp_vector(void) {
         total += cpp_vector[i];
     }
     t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3); 
+    int64_t duration_us = absolute_time_diff_us(t2, t3);
 
     printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
     return duration_us;
@@ -189,7 +189,7 @@ int64_t bm_cpp_vector_iter1(void) {
         total += *it;
     }
     t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3); 
+    int64_t duration_us = absolute_time_diff_us(t2, t3);
 
     printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
     return duration_us;
@@ -208,7 +208,7 @@ int64_t bm_cpp_vector_iter2(void) {
         total += elem;
     }
     t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3); 
+    int64_t duration_us = absolute_time_diff_us(t2, t3);
 
     printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
     return duration_us;
@@ -228,14 +228,14 @@ int64_t bm_cpp_vector_at(void) {
         total += cpp_vector.at(i);
     }
     t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3); 
+    int64_t duration_us = absolute_time_diff_us(t2, t3);
 
     printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
     return duration_us;
 }
 
 
-struct iteratingBenchmark { 
+struct iteratingBenchmark {
     int64_t (*func)(void);
     const char *name;
     const char *data_store;
@@ -257,27 +257,29 @@ static IteratingBenchmark benchmarks[] = {
 };
 
 
-int main()
-{
+int main() {
     stdio_init_all();
 
     printf("A look at the performance of different array types in C++ on Pi Pico\n");
-    sleep_ms(5000);
+    sleep_ms(5'000);
 
-    for (int target_freq_k : target_frequencies_k) {
-        if (target_freq_k) {
-            set_sys_clock_khz(target_freq_k, true);
-        }; 
-        for (const IteratingBenchmark &bm: benchmarks) {
-            printf("Running benchmark %10s : %10s : %30s"
-                   "(core %d, %d MHz, default V)\n",
-                   bm.data_store, bm.iterator_style, bm.name,
-                   0, target_freq_k * 1000);
-            for (int run=0; run < RUNS_PER_TEST; run++) {
-                bm.func();
-            }
-            sleep_ms(1000);
+    while (1) {
+        for (int target_freq_k : target_frequencies_k) {
+            if (target_freq_k) {
+                set_sys_clock_khz(target_freq_k, true);
+            };
+            for (const IteratingBenchmark &bm : benchmarks) {
+                printf("Running benchmark %10s : %10s : %30s"
+                       "(core %d, %d MHz, default V)\n",
+                       bm.data_store, bm.iterator_style, bm.name,
+                       0, target_freq_k * 1000);
+                for (int run=0; run < RUNS_PER_TEST; run++) {
+                    bm.func();
+                }
+                sleep_ms(1000);
+            };
         };
+        sleep_ms(30'000);
     };
 
     return 0;
