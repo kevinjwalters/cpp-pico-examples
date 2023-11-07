@@ -35,15 +35,18 @@
 
 #define THE_NUMBER 123  // Used for some basic maths
 
+static const char *VERSION = "1.0.0";
 
 // 0 here means leave it alone for default
-static int target_frequencies_k[] = { 0,
-                                      25'000,
-                                      125'000,  // Pi Pico default
-                                      133'000,  // RP2040 maximum
-                                      200'000   // typical over-clocking
-                                    };
+static uint32_t target_frequencies_k[] = {
+    0,
+    25'000,
+    125'000,  // Pi Pico default
+    133'000,  // RP2040 maximum
+    200'000   // typical over-clocking
+};
 
+static int debug = 0;
 
 // Relevant / interesting links (perhaps)
 //
@@ -54,9 +57,16 @@ static int target_frequencies_k[] = { 0,
 
 // Lots of similar code below, templates, macros, etc could be used...
 
+struct iteratingBenchmarkResults {
+    absolute_time_t start;
+    int64_t duration_instantiation;
+    int64_t duration_iteration;
+};
+
+typedef struct iteratingBenchmarkResults IteratingBenchmarkResults;
 
 // C array[]
-int64_t bm_classic_array(void) {
+IteratingBenchmarkResults bm_classic_array(void) {
     absolute_time_t t1, t2, t3;
     t1 = get_absolute_time();
     int32_t classic_array[ARRAY_LEN];
@@ -72,12 +82,12 @@ int64_t bm_classic_array(void) {
     t3 = get_absolute_time();
     int64_t duration_us = absolute_time_diff_us(t2, t3);
 
-    printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(classic_array), duration_us);
-    return duration_us;
+    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(classic_array), duration_us);
+    return { t1, absolute_time_diff_us(t1, t2), duration_us };
 }
 
 // C++ STL std::array (fixed size array)
-int64_t bm_cpp_array(void) {
+IteratingBenchmarkResults bm_cpp_array(void) {
     absolute_time_t t1, t2, t3;
     t1 = get_absolute_time();
     std::array<int32_t, ARRAY_LEN> cpp_array;
@@ -92,12 +102,12 @@ int64_t bm_cpp_array(void) {
     t3 = get_absolute_time();
     int64_t duration_us = absolute_time_diff_us(t2, t3);
 
-    printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
-    return duration_us;
+    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
+    return { t1, absolute_time_diff_us(t1, t2), duration_us };
 }
 
 
-int64_t bm_cpp_array_iter1(void) {
+IteratingBenchmarkResults bm_cpp_array_iter1(void) {
     absolute_time_t t1, t2, t3;
     t1 = get_absolute_time();
     std::array<int32_t, ARRAY_LEN> cpp_array;
@@ -112,11 +122,11 @@ int64_t bm_cpp_array_iter1(void) {
     t3 = get_absolute_time();
     int64_t duration_us = absolute_time_diff_us(t2, t3);
 
-    printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
-    return duration_us;
+    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
+    return { t1, absolute_time_diff_us(t1, t2), duration_us };
 }
 
-int64_t bm_cpp_array_iter2(void) {
+IteratingBenchmarkResults bm_cpp_array_iter2(void) {
     absolute_time_t t1, t2, t3;
     t1 = get_absolute_time();
     std::array<int32_t, ARRAY_LEN> cpp_array;
@@ -131,12 +141,11 @@ int64_t bm_cpp_array_iter2(void) {
     t3 = get_absolute_time();
     int64_t duration_us = absolute_time_diff_us(t2, t3);
 
-    printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
-    return duration_us;
+    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
+    return { t1, absolute_time_diff_us(t1, t2), duration_us };
 }
 
-
-int64_t bm_cpp_array_at(void) {
+IteratingBenchmarkResults bm_cpp_array_at(void) {
     absolute_time_t t1, t2, t3;
     t1 = get_absolute_time();
     std::array<int32_t, ARRAY_LEN> cpp_array;
@@ -151,13 +160,13 @@ int64_t bm_cpp_array_at(void) {
     t3 = get_absolute_time();
     int64_t duration_us = absolute_time_diff_us(t2, t3);
 
-    printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
-    return duration_us;
+    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
+    return { t1, absolute_time_diff_us(t1, t2), duration_us };
 }
 
 
 // C++ STL std::vector (variable size array)
-int64_t bm_cpp_vector(void) {
+IteratingBenchmarkResults bm_cpp_vector(void) {
     absolute_time_t t1, t2, t3;
     t1 = get_absolute_time();
     std::vector<int32_t> cpp_vector(ARRAY_LEN);
@@ -172,11 +181,11 @@ int64_t bm_cpp_vector(void) {
     t3 = get_absolute_time();
     int64_t duration_us = absolute_time_diff_us(t2, t3);
 
-    printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
-    return duration_us;
+    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
+    return { t1, absolute_time_diff_us(t1, t2), duration_us };
 }
 
-int64_t bm_cpp_vector_iter1(void) {
+IteratingBenchmarkResults bm_cpp_vector_iter1(void) {
     absolute_time_t t1, t2, t3;
     t1 = get_absolute_time();
     std::vector<int32_t> cpp_vector(ARRAY_LEN);
@@ -191,11 +200,11 @@ int64_t bm_cpp_vector_iter1(void) {
     t3 = get_absolute_time();
     int64_t duration_us = absolute_time_diff_us(t2, t3);
 
-    printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
-    return duration_us;
+    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
+    return { t1, absolute_time_diff_us(t1, t2), duration_us };
 }
 
-int64_t bm_cpp_vector_iter2(void) {
+IteratingBenchmarkResults bm_cpp_vector_iter2(void) {
     absolute_time_t t1, t2, t3;
     t1 = get_absolute_time();
     std::vector<int32_t> cpp_vector(ARRAY_LEN);
@@ -210,12 +219,11 @@ int64_t bm_cpp_vector_iter2(void) {
     t3 = get_absolute_time();
     int64_t duration_us = absolute_time_diff_us(t2, t3);
 
-    printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
-    return duration_us;
+    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
+    return { t1, absolute_time_diff_us(t1, t2), duration_us };
 }
 
-
-int64_t bm_cpp_vector_at(void) {
+IteratingBenchmarkResults bm_cpp_vector_at(void) {
     absolute_time_t t1, t2, t3;
     t1 = get_absolute_time();
     std::vector<int32_t> cpp_vector(ARRAY_LEN);
@@ -230,13 +238,13 @@ int64_t bm_cpp_vector_at(void) {
     t3 = get_absolute_time();
     int64_t duration_us = absolute_time_diff_us(t2, t3);
 
-    printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
-    return duration_us;
+    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
+    return { t1, absolute_time_diff_us(t1, t2), duration_us };
 }
 
 
 struct iteratingBenchmark {
-    int64_t (*func)(void);
+    IteratingBenchmarkResults (*func)(void);
     const char *name;
     const char *data_store;
     const char *iterator_style;
@@ -260,26 +268,42 @@ static IteratingBenchmark benchmarks[] = {
 int main() {
     stdio_init_all();
 
-    printf("A look at the performance of different array types in C++ on Pi Pico\n");
+    if (debug) printf("A look at the performance of different array types in C++ on Pi Pico\n");
     sleep_ms(5'000);
 
+    bool clock_default_run = false;
+
+    printf("start_ms,benchmark,data_store,iterator_style,run,duration_us,core,cpu_frequency,compiler_flags");
     while (1) {
         for (int target_freq_k : target_frequencies_k) {
             if (target_freq_k) {
                 set_sys_clock_khz(target_freq_k, true);
+            } else {
+                if (clock_default_run) {
+                    continue;  // Only do the benchmark once at the power on default
+                } else {
+                    clock_default_run = true;
+                }
             };
             for (const IteratingBenchmark &bm : benchmarks) {
-                printf("Running benchmark %10s : %10s : %30s"
-                       "(core %d, %d MHz, default V)\n",
-                       bm.data_store, bm.iterator_style, bm.name,
-                       0, target_freq_k * 1000);
+                if (debug) printf("Running benchmark %10s : %10s : %30s"
+                                  "(core %d, %d MHz, default V)\n",
+                                  bm.data_store, bm.iterator_style, bm.name,
+                                  0, target_freq_k * 1000);
                 for (int run=0; run < RUNS_PER_TEST; run++) {
-                    bm.func();
+                    IteratingBenchmarkResults bm_res = bm.func();
+                    printf("%" PRIu32 ",\"%s\",\"%s\",\"%s\",%" PRId64 ",%d,%d,%" PRIu32 ",\"%s\"\n",
+                           to_ms_since_boot(bm_res.start),
+                           bm.name, bm.data_store, bm.iterator_style,
+                           bm_res.duration_iteration,
+                           run,
+                           0, target_freq_k * 1000,
+                           "(pico_project default)");
                 }
-                sleep_ms(1000);
+                sleep_ms(1'000);
             };
         };
-        sleep_ms(30'000);
+        sleep_ms(15'000);
     };
 
     return 0;
