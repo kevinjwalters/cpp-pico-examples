@@ -35,7 +35,12 @@
 
 #define THE_NUMBER 123  // Used for some basic maths
 
-static const char *VERSION = "1.0.1";
+static const char *version = PICO_PROGRAM_VERSION_STRING;
+#if PICO_DEOPTIMIZED_DEBUG
+static const char *compiler_flag_summary = "-O0";
+#else
+static const char *compiler_flag_summary = "-Og (pico_project default)";
+#endif
 
 // 0 here means leave it alone for default
 static uint32_t target_frequencies_k[] = {
@@ -61,185 +66,279 @@ struct iteratingBenchmarkResults {
     absolute_time_t start;
     int64_t duration_instantiation;
     int64_t duration_iteration;
+    int32_t total;
 };
 
 typedef struct iteratingBenchmarkResults IteratingBenchmarkResults;
 
+
 // C array[]
 IteratingBenchmarkResults bm_classic_array(void) {
-    absolute_time_t t1, t2, t3;
-    t1 = get_absolute_time();
-    int32_t classic_array[ARRAY_LEN];
-
-    t2 = get_absolute_time();
-    for (int32_t i=0; i < ARRAY_LEN; i++) {
-        classic_array[i] = THE_NUMBER;
-    }
     int32_t total = 0;
-    for (int32_t i=0; i < ARRAY_LEN; i++) {
-        total += classic_array[i];
-    }
-    t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3);
+    int64_t dur_inst_us, dur_iter_us;
+    size_t data_size;
 
-    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(classic_array), duration_us);
-    return { t1, absolute_time_diff_us(t1, t2), duration_us };
+    absolute_time_t t1 = get_absolute_time();
+    {
+        absolute_time_t t2, t3;
+        int32_t classic_array[ARRAY_LEN];
+        data_size = sizeof(classic_array);
+
+        t2 = get_absolute_time();
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            classic_array[i] = THE_NUMBER;
+        }
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            total += classic_array[i];
+        }
+        t3 = get_absolute_time();
+        dur_inst_us = absolute_time_diff_us(t1, t2);
+        dur_iter_us = absolute_time_diff_us(t2, t3);
+    }
+    if (debug) printf("size %zu bytes, duration %" PRId64 " + %" PRId64 "us\n", data_size, dur_inst_us, dur_iter_us);
+    return { t1, dur_inst_us, dur_iter_us, total };
 }
+
+// calculated value is unused and could be subject to aggressive optimisation
+IteratingBenchmarkResults bm_classic_array_unused_result(void) {
+    int32_t total = 0;
+    int64_t dur_inst_us, dur_iter_us;
+    size_t data_size;
+
+    absolute_time_t t1 = get_absolute_time();
+    {
+        absolute_time_t t2, t3;
+        int32_t classic_array[ARRAY_LEN];
+        data_size = sizeof(classic_array);
+
+        t2 = get_absolute_time();
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            classic_array[i] = THE_NUMBER;
+        }
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            total += classic_array[i];
+        }
+        // bool good_result = total == THE_NUMBER * ARRAY_LEN;
+        t3 = get_absolute_time();
+        dur_inst_us = absolute_time_diff_us(t1, t2);
+        dur_iter_us = absolute_time_diff_us(t2, t3);
+    }
+    if (debug) printf("size %zu bytes, duration %" PRId64 " + %" PRId64 "us\n", data_size, dur_inst_us, dur_iter_us);
+
+    // -1 substitutes for the total variable to allow optimiser to
+    // have its nefarious ways with second loop
+    return { t1, dur_inst_us, dur_iter_us, -1 };
+}
+
 
 // C++ STL std::array (fixed size array)
 IteratingBenchmarkResults bm_cpp_array(void) {
-    absolute_time_t t1, t2, t3;
-    t1 = get_absolute_time();
-    std::array<int32_t, ARRAY_LEN> cpp_array;
-    t2 = get_absolute_time();
-    for (int32_t i=0; i < ARRAY_LEN; i++) {
-        cpp_array[i] = THE_NUMBER;
-    }
     int32_t total = 0;
-    for (int32_t i=0; i < ARRAY_LEN; i++) {
-        total += cpp_array[i];
-    }
-    t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3);
+    int64_t dur_inst_us, dur_iter_us;
+    size_t data_size;
 
-    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
-    return { t1, absolute_time_diff_us(t1, t2), duration_us };
+    absolute_time_t t1 = get_absolute_time();
+    {
+        absolute_time_t t2, t3;
+        std::array<int32_t, ARRAY_LEN> cpp_array;
+        data_size = sizeof(cpp_array);
+
+        t2 = get_absolute_time();
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            cpp_array[i] = THE_NUMBER;
+        }
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            total += cpp_array[i];
+        }
+        t3 = get_absolute_time();
+        dur_inst_us = absolute_time_diff_us(t1, t2);
+        dur_iter_us = absolute_time_diff_us(t2, t3);
+    }
+    if (debug) printf("size %zu bytes, duration %" PRId64 " + %" PRId64 "us\n", data_size, dur_inst_us, dur_iter_us);
+    return { t1, dur_inst_us, dur_iter_us, total };
 }
 
-
 IteratingBenchmarkResults bm_cpp_array_iter1(void) {
-    absolute_time_t t1, t2, t3;
-    t1 = get_absolute_time();
-    std::array<int32_t, ARRAY_LEN> cpp_array;
-    t2 = get_absolute_time();
-    for (auto it = cpp_array.begin(); it != cpp_array.end(); it++) {
-        *it = THE_NUMBER;
-    }
     int32_t total = 0;
-    for (auto it = cpp_array.begin(); it != cpp_array.end(); it++) {
-        total += *it;
-    }
-    t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3);
+    int64_t dur_inst_us, dur_iter_us;
+    size_t data_size;
 
-    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
-    return { t1, absolute_time_diff_us(t1, t2), duration_us };
+    absolute_time_t t1 = get_absolute_time();
+    {
+        absolute_time_t t2, t3;
+        std::array<int32_t, ARRAY_LEN> cpp_array;
+        t2 = get_absolute_time();
+        for (auto it = cpp_array.begin(); it != cpp_array.end(); it++) {
+            *it = THE_NUMBER;
+        }
+        int32_t total = 0;
+        for (auto it = cpp_array.begin(); it != cpp_array.end(); it++) {
+            total += *it;
+        }
+        t3 = get_absolute_time();
+        dur_inst_us = absolute_time_diff_us(t1, t2);
+        dur_iter_us = absolute_time_diff_us(t2, t3);
+    }
+    if (debug) printf("size %zu bytes, duration %" PRId64 " + %" PRId64 "us\n", data_size, dur_inst_us, dur_iter_us);
+    return { t1, dur_inst_us, dur_iter_us, total };
 }
 
 IteratingBenchmarkResults bm_cpp_array_iter2(void) {
-    absolute_time_t t1, t2, t3;
-    t1 = get_absolute_time();
-    std::array<int32_t, ARRAY_LEN> cpp_array;
-    t2 = get_absolute_time();
-    for (auto& elem : cpp_array) {
-        elem = THE_NUMBER;
-    }
     int32_t total = 0;
-    for (const auto& elem : cpp_array) {
-        total += elem;
-    }
-    t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3);
+    int64_t dur_inst_us, dur_iter_us;
+    size_t data_size;
 
-    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
-    return { t1, absolute_time_diff_us(t1, t2), duration_us };
+    absolute_time_t t1 = get_absolute_time();
+    {
+        absolute_time_t t2, t3;
+        t1 = get_absolute_time();
+        std::array<int32_t, ARRAY_LEN> cpp_array;
+        t2 = get_absolute_time();
+        for (auto& elem : cpp_array) {
+            elem = THE_NUMBER;
+        }
+        int32_t total = 0;
+        for (const auto& elem : cpp_array) {
+            total += elem;
+        }
+        t3 = get_absolute_time();
+        dur_inst_us = absolute_time_diff_us(t1, t2);
+        dur_iter_us = absolute_time_diff_us(t2, t3);
+    }
+    if (debug) printf("size %zu bytes, duration %" PRId64 " + %" PRId64 "us\n", data_size, dur_inst_us, dur_iter_us);
+    return { t1, dur_inst_us, dur_iter_us, total };
 }
 
 IteratingBenchmarkResults bm_cpp_array_at(void) {
-    absolute_time_t t1, t2, t3;
-    t1 = get_absolute_time();
-    std::array<int32_t, ARRAY_LEN> cpp_array;
-    t2 = get_absolute_time();
-    for (int32_t i=0; i < ARRAY_LEN; i++) {
-        cpp_array.at(i) = THE_NUMBER;
-    }
     int32_t total = 0;
-    for (int32_t i=0; i < ARRAY_LEN; i++) {
-        total += cpp_array.at(i);
-    }
-    t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3);
+    int64_t dur_inst_us, dur_iter_us;
+    size_t data_size;
 
-    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_array), duration_us);
-    return { t1, absolute_time_diff_us(t1, t2), duration_us };
+    absolute_time_t t1 = get_absolute_time();
+    {
+        absolute_time_t t2, t3;
+        t1 = get_absolute_time();
+        std::array<int32_t, ARRAY_LEN> cpp_array;
+        t2 = get_absolute_time();
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            cpp_array.at(i) = THE_NUMBER;
+        }
+        int32_t total = 0;
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            total += cpp_array.at(i);
+        }
+        t3 = get_absolute_time();
+        dur_inst_us = absolute_time_diff_us(t1, t2);
+        dur_iter_us = absolute_time_diff_us(t2, t3);
+    }
+    if (debug) printf("size %zu bytes, duration %" PRId64 " + %" PRId64 "us\n", data_size, dur_inst_us, dur_iter_us);
+    return { t1, dur_inst_us, dur_iter_us, total };
 }
 
 
 // C++ STL std::vector (variable size array)
 IteratingBenchmarkResults bm_cpp_vector(void) {
-    absolute_time_t t1, t2, t3;
-    t1 = get_absolute_time();
-    std::vector<int32_t> cpp_vector(ARRAY_LEN);
-    t2 = get_absolute_time();
-    for (int32_t i=0; i < ARRAY_LEN; i++) {
-        cpp_vector[i] = THE_NUMBER;
-    }
     int32_t total = 0;
-    for (int32_t i=0; i < ARRAY_LEN; i++) {
-        total += cpp_vector[i];
-    }
-    t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3);
+    int64_t dur_inst_us, dur_iter_us;
+    size_t data_size;
 
-    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
-    return { t1, absolute_time_diff_us(t1, t2), duration_us };
+    absolute_time_t t1 = get_absolute_time();
+    {
+        absolute_time_t t2, t3;
+        t1 = get_absolute_time();
+        std::vector<int32_t> cpp_vector(ARRAY_LEN);
+        t2 = get_absolute_time();
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            cpp_vector[i] = THE_NUMBER;
+        }
+        int32_t total = 0;
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            total += cpp_vector[i];
+        }
+        t3 = get_absolute_time();
+        dur_inst_us = absolute_time_diff_us(t1, t2);
+        dur_iter_us = absolute_time_diff_us(t2, t3);
+    }
+    if (debug) printf("size %zu bytes, duration %" PRId64 " + %" PRId64 "us\n", data_size, dur_inst_us, dur_iter_us);
+    return { t1, dur_inst_us, dur_iter_us, total };
 }
 
 IteratingBenchmarkResults bm_cpp_vector_iter1(void) {
-    absolute_time_t t1, t2, t3;
-    t1 = get_absolute_time();
-    std::vector<int32_t> cpp_vector(ARRAY_LEN);
-    t2 = get_absolute_time();
-    for (auto it = cpp_vector.begin(); it != cpp_vector.end(); it++) {
-        *it = THE_NUMBER;
-    }
     int32_t total = 0;
-    for (auto it = cpp_vector.begin(); it != cpp_vector.end(); it++) {
-        total += *it;
-    }
-    t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3);
+    int64_t dur_inst_us, dur_iter_us;
+    size_t data_size;
 
-    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
-    return { t1, absolute_time_diff_us(t1, t2), duration_us };
+    absolute_time_t t1 = get_absolute_time();
+    {
+        absolute_time_t t2, t3;
+        t1 = get_absolute_time();
+        std::vector<int32_t> cpp_vector(ARRAY_LEN);
+        t2 = get_absolute_time();
+        for (auto it = cpp_vector.begin(); it != cpp_vector.end(); it++) {
+            *it = THE_NUMBER;
+        }
+        int32_t total = 0;
+        for (auto it = cpp_vector.begin(); it != cpp_vector.end(); it++) {
+            total += *it;
+        }
+        t3 = get_absolute_time();
+        dur_inst_us = absolute_time_diff_us(t1, t2);
+        dur_iter_us = absolute_time_diff_us(t2, t3);
+    }
+    if (debug) printf("size %zu bytes, duration %" PRId64 " + %" PRId64 "us\n", data_size, dur_inst_us, dur_iter_us);
+    return { t1, dur_inst_us, dur_iter_us, total };
 }
 
 IteratingBenchmarkResults bm_cpp_vector_iter2(void) {
-    absolute_time_t t1, t2, t3;
-    t1 = get_absolute_time();
-    std::vector<int32_t> cpp_vector(ARRAY_LEN);
-    t2 = get_absolute_time();
-    for (auto& elem : cpp_vector) {
-        elem = THE_NUMBER;
-    }
     int32_t total = 0;
-    for (const auto& elem : cpp_vector) {
-        total += elem;
-    }
-    t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3);
+    int64_t dur_inst_us, dur_iter_us;
+    size_t data_size;
 
-    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
-    return { t1, absolute_time_diff_us(t1, t2), duration_us };
+    absolute_time_t t1 = get_absolute_time();
+    {
+        absolute_time_t t2, t3;
+        t1 = get_absolute_time();
+        std::vector<int32_t> cpp_vector(ARRAY_LEN);
+        t2 = get_absolute_time();
+        for (auto& elem : cpp_vector) {
+            elem = THE_NUMBER;
+        }
+        int32_t total = 0;
+        for (const auto& elem : cpp_vector) {
+            total += elem;
+        }
+        t3 = get_absolute_time();
+        dur_inst_us = absolute_time_diff_us(t1, t2);
+        dur_iter_us = absolute_time_diff_us(t2, t3);
+    }
+    if (debug) printf("size %zu bytes, duration %" PRId64 " + %" PRId64 "us\n", data_size, dur_inst_us, dur_iter_us);
+    return { t1, dur_inst_us, dur_iter_us, total };
 }
 
 IteratingBenchmarkResults bm_cpp_vector_at(void) {
-    absolute_time_t t1, t2, t3;
-    t1 = get_absolute_time();
-    std::vector<int32_t> cpp_vector(ARRAY_LEN);
-    t2 = get_absolute_time();
-    for (int32_t i=0; i < ARRAY_LEN; i++) {
-        cpp_vector.at(i) = THE_NUMBER;
-    }
     int32_t total = 0;
-    for (int32_t i=0; i < ARRAY_LEN; i++) {
-        total += cpp_vector.at(i);
-    }
-    t3 = get_absolute_time();
-    int64_t duration_us = absolute_time_diff_us(t2, t3);
+    int64_t dur_inst_us, dur_iter_us;
+    size_t data_size;
 
-    if (debug) printf("size %zu bytes, duration %" PRId64 " us\n", sizeof(cpp_vector), duration_us);
-    return { t1, absolute_time_diff_us(t1, t2), duration_us };
+    absolute_time_t t1 = get_absolute_time();
+    {
+        absolute_time_t t2, t3;
+        t1 = get_absolute_time();
+        std::vector<int32_t> cpp_vector(ARRAY_LEN);
+        t2 = get_absolute_time();
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            cpp_vector.at(i) = THE_NUMBER;
+        }
+        int32_t total = 0;
+        for (int32_t i=0; i < ARRAY_LEN; i++) {
+            total += cpp_vector.at(i);
+        }
+        t3 = get_absolute_time();
+        dur_inst_us = absolute_time_diff_us(t1, t2);
+        dur_iter_us = absolute_time_diff_us(t2, t3);
+    }
+    if (debug) printf("size %zu bytes, duration %" PRId64 " + %" PRId64 "us\n", data_size, dur_inst_us, dur_iter_us);
+    return { t1, dur_inst_us, dur_iter_us, total };
 }
 
 
@@ -254,6 +353,7 @@ typedef struct iteratingBenchmark IteratingBenchmark;
 
 static IteratingBenchmark benchmarks[] = {
     {bm_classic_array, "bm_classic_array", "C", "C"},
+    {bm_classic_array_unused_result, "bm_classic_array_unused_result", "C", "C"},
     {bm_cpp_array, "bm_cpp_array", "array", "C"},
     {bm_cpp_array_iter1, "bm_cpp_array_iter1", "array", "iter1"},
     {bm_cpp_array_iter2, "bm_cpp_array_iter2", "array", "iter2"},
@@ -292,19 +392,20 @@ int main() {
                                   0, target_freq_k * 1000);
                 for (int run=0; run < RUNS_PER_TEST; run++) {
                     IteratingBenchmarkResults bm_res = bm.func();
+                    printf("Hmm %d %d\n", bm_res.total, bm_res.total == ARRAY_LEN * THE_NUMBER);
                     printf("%" PRIu32 ",\"%s\",\"%s\",\"%s\",%" PRId64 ",%d,%d,%" PRIu32 ",\"%s\"\n",
                            to_ms_since_boot(bm_res.start),
                            bm.name, bm.data_store, bm.iterator_style,
                            bm_res.duration_iteration,
                            run,
                            0, target_freq_k * 1000,
-                           "(pico_project default)");
+                           compiler_flag_summary);
                 }
                 sleep_ms(1'000);
-            };
-        };
+            }
+        }
         sleep_ms(15'000);
-    };
+    }
 
     return 0;
 }

@@ -23,12 +23,12 @@ project(array_performance C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-# Add executable. Default name is the project name, version 0.1
+# Add executable. Default name is the project name, version 1.1.0
 
 add_executable(array_performance array_performance.cpp)
 
 pico_set_program_name(array_performance "array_performance")
-pico_set_program_version(array_performance "0.1")
+pico_set_program_version(array_performance "1.1.0")
 
 pico_enable_stdio_uart(array_performance 0)
 pico_enable_stdio_usb(array_performance 1)
