@@ -35,7 +35,7 @@
 
 #define THE_NUMBER 123  // Used for some basic maths
 
-static const char *VERSION = "1.0.0";
+static const char *VERSION = "1.0.1";
 
 // 0 here means leave it alone for default
 static uint32_t target_frequencies_k[] = {
@@ -273,7 +273,7 @@ int main() {
 
     bool clock_default_run = false;
 
-    printf("start_ms,benchmark,data_store,iterator_style,run,duration_us,core,cpu_frequency,compiler_flags");
+    printf("start_ms,benchmark,data_store,iterator_style,duration_us,run,core,cpu_frequency,compiler_flags\n");
     while (1) {
         for (int target_freq_k : target_frequencies_k) {
             if (target_freq_k) {
