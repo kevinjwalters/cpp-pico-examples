@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <string.h>
 
 #include <array>
 #include <vector>
@@ -39,8 +40,10 @@ static const char *version = PICO_PROGRAM_VERSION_STRING;
 #if PICO_DEOPTIMIZED_DEBUG
 static const char *compiler_flag_summary = "-O0";
 #else
-static const char *compiler_flag_summary = "-Og (pico_project default)";
+static const char *compiler_flag_summary = NULL;
 #endif
+
+static constexpr int EXIT_UNKNOWN_BUILD_TYPE = 3;
 
 // 0 here means leave it alone for default
 static uint32_t target_frequencies_k[] = {
@@ -366,6 +369,17 @@ int main() {
 
     bool clock_default_run = false;
 
+    // Preprocessor cannot do string compares without hacks, hence runtime setting here
+    if (compiler_flag_summary == NULL) {
+        if (strcmp(PICO_CMAKE_BUILD_TYPE, "Debug") == 0) {
+            compiler_flag_summary = "-Og (pico_project default)";
+        } else if (strcmp(PICO_CMAKE_BUILD_TYPE, "Release") == 0) {
+            compiler_flag_summary = "-O3";
+        } else {
+            exit(EXIT_UNKNOWN_BUILD_TYPE);
+        }
+    }
+
     printf("start_ms,benchmark,data_store,iterator_style,duration_us,run,core,cpu_frequency,compiler_flags\n");
     while (1) {
         for (int target_freq_k : target_frequencies_k) {
@@ -385,7 +399,7 @@ int main() {
                                   0, target_freq_k * 1000);
                 for (int run=0; run < RUNS_PER_TEST; run++) {
                     IteratingBenchmarkResults bm_res = bm.func();
-                    if (bm_res.total != ARRAY_LEN * THE_NUMBER and bm_res.total != -1) {
+                    if (bm_res.total != ARRAY_LEN * THE_NUMBER && bm_res.total != -1) {
                         printf("Hmm %d\n", bm_res.total);
                     }
                     printf("%" PRIu32 ",\"%s\",\"%s\",\"%s\",%" PRId64 ",%d,%d,%" PRIu32 ",\"%s\"\n",
