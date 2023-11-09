@@ -171,7 +171,6 @@ IteratingBenchmarkResults bm_cpp_array_iter1(void) {
         for (auto it = cpp_array.begin(); it != cpp_array.end(); it++) {
             *it = THE_NUMBER;
         }
-        int32_t total = 0;
         for (auto it = cpp_array.begin(); it != cpp_array.end(); it++) {
             total += *it;
         }
@@ -197,7 +196,6 @@ IteratingBenchmarkResults bm_cpp_array_iter2(void) {
         for (auto& elem : cpp_array) {
             elem = THE_NUMBER;
         }
-        int32_t total = 0;
         for (const auto& elem : cpp_array) {
             total += elem;
         }
@@ -223,7 +221,6 @@ IteratingBenchmarkResults bm_cpp_array_at(void) {
         for (int32_t i=0; i < ARRAY_LEN; i++) {
             cpp_array.at(i) = THE_NUMBER;
         }
-        int32_t total = 0;
         for (int32_t i=0; i < ARRAY_LEN; i++) {
             total += cpp_array.at(i);
         }
@@ -251,7 +248,6 @@ IteratingBenchmarkResults bm_cpp_vector(void) {
         for (int32_t i=0; i < ARRAY_LEN; i++) {
             cpp_vector[i] = THE_NUMBER;
         }
-        int32_t total = 0;
         for (int32_t i=0; i < ARRAY_LEN; i++) {
             total += cpp_vector[i];
         }
@@ -277,7 +273,6 @@ IteratingBenchmarkResults bm_cpp_vector_iter1(void) {
         for (auto it = cpp_vector.begin(); it != cpp_vector.end(); it++) {
             *it = THE_NUMBER;
         }
-        int32_t total = 0;
         for (auto it = cpp_vector.begin(); it != cpp_vector.end(); it++) {
             total += *it;
         }
@@ -303,7 +298,6 @@ IteratingBenchmarkResults bm_cpp_vector_iter2(void) {
         for (auto& elem : cpp_vector) {
             elem = THE_NUMBER;
         }
-        int32_t total = 0;
         for (const auto& elem : cpp_vector) {
             total += elem;
         }
@@ -329,7 +323,6 @@ IteratingBenchmarkResults bm_cpp_vector_at(void) {
         for (int32_t i=0; i < ARRAY_LEN; i++) {
             cpp_vector.at(i) = THE_NUMBER;
         }
-        int32_t total = 0;
         for (int32_t i=0; i < ARRAY_LEN; i++) {
             total += cpp_vector.at(i);
         }
@@ -392,7 +385,9 @@ int main() {
                                   0, target_freq_k * 1000);
                 for (int run=0; run < RUNS_PER_TEST; run++) {
                     IteratingBenchmarkResults bm_res = bm.func();
-                    printf("Hmm %d %d\n", bm_res.total, bm_res.total == ARRAY_LEN * THE_NUMBER);
+                    if (bm_res.total != ARRAY_LEN * THE_NUMBER and bm_res.total != -1) {
+                        printf("Hmm %d\n", bm_res.total);
+                    }
                     printf("%" PRIu32 ",\"%s\",\"%s\",\"%s\",%" PRId64 ",%d,%d,%" PRIu32 ",\"%s\"\n",
                            to_ms_since_boot(bm_res.start),
                            bm.name, bm.data_store, bm.iterator_style,
